@@ -1,6 +1,8 @@
 #include <iostream>
 #include <conio.h>
 #include <map>
+#include <algorithm>
+#include <vector>
 #include "string"
 #include "List.h"
 #include "Person.h"
@@ -11,9 +13,11 @@
 using namespace dby;
 using namespace std;
 
-List<User*>* usersList = new List<User*>;
 List<Order*>* ordersList = new List<Order*>;
+List<Ticket*>* ticketsList = new List<Ticket*>;
 List<Product*>* productsList = new List<Product*>;
+
+List<User*>* usersList = new List<User*>;
 List<Person*>* personsList = new List<Person*>;
 List<Company*>* companiesList = new List<Company*>;
 List<Driver*>* driversList = new List<Driver*>;
@@ -44,6 +48,7 @@ void showDriversList(List<Driver*>* driversList, Order* order) {
 }
 
 //MOSTRAR MENÚ PARA CUSTOMER Y DRIVER
+
 int showMenuForCustomers() {
     cout << "==================== MENU DE CLIENTES ==================" << endl << endl;
     cout << "1. Hacer pedido" << endl;
@@ -78,42 +83,40 @@ int showMenuForEmployees() {
 }
 
 //EJECTUTAR MENU PARA CUSTOMER Y DRIVER
-void executeMenuForCustomers(int option, int idCustomer) {
+void executeMenuForCustomers(int option, int idCustomer, int& integer) {
 
     string origin, destination;
     string vehicleType;
     double distance;
     int n;
-
     string nameProduct;
     float width, height, weight, value;
-    int id;
-    int integer = 0;
 
     Ticket* ticket = nullptr;
     Order* order = nullptr;
     Route* route = nullptr;
 
+
     switch (option) {
     case 1:
-        id = 0;
+        integer++;
         system("cls");
-        cout << "Pedido " << integer + 1 << ": " << endl; 
-        
+        cout << "Pedido " << integer + 1 << ": " << endl;
+
         cout << "Ingresa el lugar de recojo: ";
         cin >> origin;
         cout << "Ingresa el lugar de entrega: ";
         cin >> destination;
         cout << "Ingresa la distancia entre el punto de origen y el destino en km: ";
         cin >> distance;
-       
-         route = new Route(origin, destination, distance);
+
+        route = new Route(origin, destination, distance);
 
         cout << "Ingresa la cantidad de productos a transportar: ";
         cin >> n;
 
         for (int i = 0; i < n; i++) {
-            id = i + 1;
+
             cout << "Ingresa el nombre del producto " << i + 1 << ": ";
             cin >> nameProduct;
             cout << "Ingresa la altura del producto " << i + 1 << " en centimetros: ";
@@ -127,22 +130,24 @@ void executeMenuForCustomers(int option, int idCustomer) {
             cout << "Producto registrado exitosamente!" << endl;
             cout << "Presiona cualquier tecla para continuar..." << endl;
 
-            productsList->push_back(new Product(nameProduct, width, height, weight, value, i + 1));
+            productsList->push_back(new Product(nameProduct, width, height, weight, value, i + 1, integer));
             _getch();
-            
+
         }
-        order = new Order(productsList, route);
+        order = new Order(productsList, route, integer);
         ordersList->push_back(order);
-        ticket = new Ticket(order, usersList->at(idCustomer)->getName(), integer + 1);
-        integer++;
+
+        ticket = new Ticket(order, usersList->at(idCustomer)->getName(), integer);
+        ticketsList->push_back(ticket);
 
         system("cls");
         ticket->printTicket();
         cout << "Presione cualquier tecla para ver los conductores disponibles para su pedido..." << endl;
+
         _getch();
 
         vehicleType = VehicleType().determineVehicleType(order->getTotalWeight());
-      
+
         if (vehicleType == "moto" && !driversMoto->empty()) {
             cout << "Lista de conductores de moto:" << endl;
             showDriversList(driversMoto, order);
@@ -165,7 +170,7 @@ void executeMenuForCustomers(int option, int idCustomer) {
         _getch();
 
         system("cls");
-        executeMenuForCustomers(showMenuForCustomers(), idCustomer);
+        executeMenuForCustomers(showMenuForCustomers(), idCustomer, integer);
         break;
     case 2:
         system("cls");
@@ -176,39 +181,109 @@ void executeMenuForCustomers(int option, int idCustomer) {
         }
         else {
             for (int i = 0; i < ordersList->size(); ++i) {
-                Order* order = ordersList->at(i);
-                ticket = new Ticket(order, usersList->at(idCustomer)->getName(), i + 1);
-                cout << "Boleta " << i + 1 << ":" << endl;
-                ticket->printTicket();
-                delete ticket; // Liberar memoria después de usar el objeto Ticket
+                //Order* order = ordersList->at(i);
+                //ticket = new Ticket(order, usersList->at(idCustomer)->getName(), i + 1);
+                //cout << "Boleta " << i + 1 << ":" << endl;
+                //ticket->printTicket();
+                //delete ticket; // Liberar memoria después de usar el objeto Ticket
+                cout << "Boleta " << ticketsList->at(i)->getOrderID() << ": " << endl;
+                ticketsList->at(i)->printTicket();
+                cout << endl;
+
             }
         }
 
         cout << "Presione cualquier tecla para volver al menú..." << endl;
         _getch();
         system("cls");
-        executeMenuForCustomers(showMenuForCustomers(), idCustomer);
+        executeMenuForCustomers(showMenuForCustomers(), idCustomer, integer);
         break;
 
-    default:
-        cout << "Opcion no valida." << endl;
-        break;
+    case 5:
+        cout << "Cerrando sesíon..." << endl;
+        return;
+
+    }
+
+}
+
+//ORDENAMIENTO
+
+void showOrdersMenu() {
+    cout << "Seleccione el criterio de ordenamiento:" << endl;
+    cout << "1. Ordenar por monto" << endl;
+    cout << "2. Ordenar por kilometros" << endl;
+    cout << "3. Sin ordenamiento" << endl;
+}
+bool compareByAmount(Order* a, Order* b) {
+    return a->getTotalAmount() < b->getTotalAmount();
+}
+
+bool compareByDistance(Order* a, Order* b) {
+    return a->getRoute()->getDistance() < b->getRoute()->getDistance();
+}
+void sortOrdersByAmount(List<Order*>* ordersList) {
+    vector<Order*> orderVector;
+    for (int i = 0; i < ordersList->size(); ++i) {
+        orderVector.push_back(ordersList->at(i));
+    }
+    sort(orderVector.begin(), orderVector.end(), compareByAmount);
+    for (int i = 0; i < orderVector.size(); ++i) {
+        ordersList->at(i) = orderVector[i];
     }
 }
+void sortOrdersByDistance(List<Order*>* ordersList) {
+    vector<Order*> orderVector;
+    for (int i = 0; i < ordersList->size(); ++i) {
+        orderVector.push_back(ordersList->at(i));
+    }
+    sort(orderVector.begin(), orderVector.end(), compareByDistance);
+    for (int i = 0; i < orderVector.size(); ++i) {
+        ordersList->at(i) = orderVector[i];
+    }
+}
+
 
 void executeMenuForEmployees(int option) {
     switch (option) {
     case 1:
         // Mostrar lista de pedidos pendientes y permitir al empleado seleccionar un pedido
-        if (ordersList->size() == 0) {
+        if (ordersList->empty()) {
             cout << "No hay pedidos pendientes." << endl;
         }
         else {
+            // Mostrar lista de opciones de ordenamiento
+            showOrdersMenu();
+            int orderBy;
+            cin >> orderBy;
+
+            // Aplicar el ordenamiento según la opción seleccionada
+            switch (orderBy) {
+            case 1:
+                sortOrdersByAmount(ordersList);
+                break;
+            case 2:
+                sortOrdersByDistance(ordersList);
+                break;
+            case 3:
+                
+                break;
+            default:
+                cout << "Opción no válida." << endl;
+                return;
+            }
+
+            // Mostrar los datos de los pedidos ordenados
             cout << "Lista de pedidos pendientes:" << endl;
             for (int i = 0; i < ordersList->size(); ++i) {
+                Order* order = ordersList->at(i);
                 cout << i + 1 << ". Pedido desde " << ordersList->at(i)->getRoute()->getOrigin()
                     << " hasta " << ordersList->at(i)->getRoute()->getDestination() << endl;
+                cout << "   Monto total: S/." << order->getTotalAmount() << endl;
+                cout << "   Distancia: " << order->getDistance() << " km" << endl;
             }
+
+            // Permitir al conductor seleccionar un pedido
             cout << "Seleccione el número de pedido que desea realizar: ";
             int selectedOrderIndex;
             cin >> selectedOrderIndex;
@@ -217,39 +292,21 @@ void executeMenuForEmployees(int option) {
             // Validar la entrada del usuario
             if (selectedOrderIndex < 0 || selectedOrderIndex >= ordersList->size()) {
                 cout << "Número de pedido no válido." << endl;
+                return;
             }
             else {
-                // Asignar conductor al pedido seleccionado
-                Order* selectedOrder = ordersList->at(selectedOrderIndex);
-                string vehicleType = VehicleType().determineVehicleType(selectedOrder->getTotalWeight());
-
-                Driver* selectedDriver = nullptr;
-                if (vehicleType == "moto" && !driversMoto->empty()) {
-                    selectedDriver = driversMoto->at(0); // Seleccionar el primer conductor de la lista de motos
-                }
-                else if (vehicleType == "auto" && !driversAuto->empty()) {
-                    selectedDriver = driversAuto->at(0); // Seleccionar el primer conductor de la lista de autos
-                }
-                else if (vehicleType == "camion" && !driversCamion->empty()) {
-                    selectedDriver = driversCamion->at(0); // Seleccionar el primer conductor de la lista de camiones
-                }
-                else {
-                    cout << "No hay conductores disponibles para este tipo de vehículo." << endl;
-                }
-
-                if (selectedDriver) {
-                    orderDriverMap[selectedOrder] = selectedDriver;
-                    cout << "Conductor " << selectedDriver->getName() << " asignado al pedido." << endl;
-                }
+                cout << "Orden en curso...";
             }
+
         }
         break;
 
     case 2:
         cout << "Cerrando sesión..." << endl;
         break;
-
     }
+
+    
 }
 
 
@@ -412,7 +469,9 @@ void LogIn() {
     string email, password;
     bool correctPassword = false;
     bool accountFound = false;
-    int optionForCustomers, optionForEmployees;
+    int optionForCustomers=0, optionForEmployees=0;
+    int integer = -1; //ID: TICKET, ORDER, PRODUCT
+
     system("cls");
     cout << "Ingresa tu correo electronico: ";
     cin >> email;
@@ -429,7 +488,7 @@ void LogIn() {
                 cout << "Bienvenido de vuelta " << usersList->at(i)->getName() << endl << endl;
                 if (usersList->at(i)->getUserType() == "Customer") {
                     optionForCustomers = showMenuForCustomers();
-                    executeMenuForCustomers(optionForCustomers, i);
+                    executeMenuForCustomers(optionForCustomers, i, integer);
                 }
                  if (usersList->at(i)->getUserType() == "Employee") {
                     Employee* employee = dynamic_cast<Employee*>(usersList->at(i));

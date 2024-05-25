@@ -12,10 +12,11 @@ private:
 	VehicleType vehicleType;
 	RouteTime routeTime;
 	string customerName;
-	int id;
+	int orderID;
 
 public:
-	Ticket(Order* order, string customerName, int id) : order(order), customerName(customerName), id(id) {}
+	Ticket(Order* order, string customerName, int id) : order(order), customerName(customerName), orderID(id) {}
+	int getOrderID() { return orderID; }
 
 	void printTicket() {
 		double totalWeight = order->getTotalWeight();
@@ -26,17 +27,17 @@ public:
 		double travelTime = routeTime.calculateTime(distance);
 
 		cout << "============================ Detalles de la boleta ==========================" << endl;
+		cout << "   ID de la boleta: " << orderID + 1 << endl;
 		cout << "   Nombre del propietario: " << customerName << endl;
 		order->showProducts();
-		cout << "   ID de la boleta: " << id << endl;
 		cout << "   Vehiculo asignado: " << vehicle << endl;
 		cout << "   Precio total: " << shippingCost << endl;
 		cout << "   Tiempo estimado de demora (minutos): " << travelTime << endl;
 		cout << " -----------------------------------------------------------------------------" << endl;
 	}
 
-	
-	~Ticket(){}
+
+	~Ticket() {}
 };
 
 
