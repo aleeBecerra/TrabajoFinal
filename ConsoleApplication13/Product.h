@@ -10,10 +10,11 @@ private:
 	float width, height, weight, value;
 	int id;
 	int orderID;
+	string customerName;
 
 public:
-	Product(string nameP, float width, float height, float weight, float value, int id, int orderID) : nameProduct(nameP), width(width), height(height), weight(weight),
-		value(value), id(id), orderID(orderID) {}
+	Product(string nameP, float width, float height, float weight, float value, int id, int orderID, string customerName) : nameProduct(nameP), width(width), height(height), weight(weight),
+		value(value), id(id), orderID(orderID), customerName(customerName) {}
 	~Product() {}
 
 	//setters
@@ -33,16 +34,19 @@ public:
 	float getWeight() { return weight; }
 	float getValue() { return value; }
 	int getOrderID() { return orderID; }
+	string getCustomerName() { return customerName; }
 
 	//metodos de servicio
 	void showProductInfo() {
 		cout << "== Detalle del producto ==" << endl;
 		cout << "ID del producto: " << id << endl;
+		cout << "Propietario del producto: " << customerName << endl;
 		cout << "Nombre del producto: " << nameProduct << endl;
 		cout << "Ancho del producto: " << width << endl;
 		cout << "Altura del producto: " << height << endl;
 		cout << "Peso del producto: " << weight << endl;
 		cout << "Valor del producto: " << value << endl;
+		cout << endl;
 	}
 };
 

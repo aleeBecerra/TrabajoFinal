@@ -29,6 +29,55 @@ List<Driver*>* driversCamion = new List<Driver*>;
 //Mapa que asociará los pedidos con conductores
 map<Order*, Driver*> orderDriverMap;
 
+
+//generar datos aleatorios
+string generateRandomString(size_t length) {
+    const string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    string randomString;
+    for (size_t i = 0; i < length; ++i) {
+        randomString += characters[rand() % characters.size()];
+    }
+    return randomString;
+}
+
+
+void generateDrivers(int n) {
+    const vector<string> driverNames = { "Juan ", "Ana ", "Carlos ", "Luis ", "Maria ", "Isabel ", "Pedro ", "Omar " };
+    const vector<string> driverSecondNames = { "Perez", "Gomez", " Diaz", "amirez", "Rodriguez", "Gonzales" };
+
+    const vector<string> vehicleTypes = { "moto", "auto", "camion" };
+
+    srand(static_cast<unsigned>(time(0))); // Semilla para la generación aleatoria
+
+    for (int i = 0; i < n; ++i) {
+        string name = driverNames[rand() % driverNames.size()] + driverSecondNames[rand() % driverSecondNames.size()];
+        string email = generateRandomString(8) + "@example.com";
+        string password = generateRandomString(12);
+        string licenseNumber = "L" + to_string(rand() % 10000);
+        string vehicleType = vehicleTypes[rand() % vehicleTypes.size()];
+
+        Driver* driver = new Driver(name, email, password, licenseNumber, vehicleType);
+        driversList->push_back(driver);
+        usersList->push_back(driver);
+
+        if (vehicleType == "moto") {
+            driversMoto->push_back(driver);
+        }
+        else if (vehicleType == "auto") {
+            driversAuto->push_back(driver);
+        }
+        else if (vehicleType == "camion") {
+            driversCamion->push_back(driver);
+        }
+    }
+
+    cout << n << " conductores generados aleatoriamente." << endl;
+    cout << "Presione cualquier tecla para continuar..." << endl;
+    _getch();
+}
+
+
+
 //MOSTRAR LISTA DE CONDUCTORES
 void showDriversList(List<Driver*>* driversList, Order* order) {
     Ticket* ticket = nullptr;
@@ -55,7 +104,7 @@ int showMenuForCustomers() {
     cout << "2. Mostrar boletas" << endl;
     cout << "3. Ver estado de mi pedido" << endl;
     cout << "4. Modificar pedido" << endl;
-    cout << "5. Cerrar sesión" << endl;
+    cout << "5. Cerrar sesion" << endl;
     int option;
     do
     {
@@ -130,11 +179,12 @@ void executeMenuForCustomers(int option, int idCustomer, int& integer) {
             cout << "Producto registrado exitosamente!" << endl;
             cout << "Presiona cualquier tecla para continuar..." << endl;
 
-            productsList->push_back(new Product(nameProduct, width, height, weight, value, i + 1, integer));
+            productsList->push_back(new Product(nameProduct, width, height, weight, value, i + 1, integer,
+                usersList->at(idCustomer)->getName()));
             _getch();
 
         }
-        order = new Order(productsList, route, integer);
+        order = new Order(productsList, route, integer, usersList->at(idCustomer)->getName());
         ordersList->push_back(order);
 
         ticket = new Ticket(order, usersList->at(idCustomer)->getName(), integer);
@@ -186,9 +236,11 @@ void executeMenuForCustomers(int option, int idCustomer, int& integer) {
                 //cout << "Boleta " << i + 1 << ":" << endl;
                 //ticket->printTicket();
                 //delete ticket; // Liberar memoria después de usar el objeto Ticket
-                cout << "Boleta " << ticketsList->at(i)->getOrderID() << ": " << endl;
-                ticketsList->at(i)->printTicket();
-                cout << endl;
+                if (ordersList->at(i)->getCustomerName() == usersList->at(idCustomer)->getName()) {
+                    cout << "Boleta " << ticketsList->at(i)->getOrderID() + 1 << ": " << endl;
+                    ticketsList->at(i)->printTicket();
+                    cout << endl;
+                }
 
             }
         }
@@ -207,31 +259,39 @@ void executeMenuForCustomers(int option, int idCustomer, int& integer) {
 
 }
 
-//ORDENAMIENTO
+//ORDENAMIENTO POR PRECIO, DISTANCIA Y PESO
 
 void showOrdersMenu() {
     cout << "Seleccione el criterio de ordenamiento:" << endl;
     cout << "1. Ordenar por monto" << endl;
     cout << "2. Ordenar por kilometros" << endl;
-    cout << "3. Sin ordenamiento" << endl;
-}
-bool compareByAmount(Order* a, Order* b) {
-    return a->getTotalAmount() < b->getTotalAmount();
+    cout << "3. Ordenar por peso" << endl;
+    cout << "4. Sin ordenamiento" << endl;
 }
 
+bool compareByAmount(Order* a, Order* b) {
+    return a->getTotalAmount() < b->getTotalAmount(); //Forma ascendente
+}
 bool compareByDistance(Order* a, Order* b) {
-    return a->getRoute()->getDistance() < b->getRoute()->getDistance();
+    return a->getRoute()->getDistance() > b->getRoute()->getDistance(); //Forma descendente
 }
+bool compareByWeight(Order* a, Order* b) {
+    return a->getTotalWeight() > b->getTotalWeight(); //Forma descendente
+}
+
 void sortOrdersByAmount(List<Order*>* ordersList) {
-    vector<Order*> orderVector;
-    for (int i = 0; i < ordersList->size(); ++i) {
-        orderVector.push_back(ordersList->at(i));
-    }
-    sort(orderVector.begin(), orderVector.end(), compareByAmount);
-    for (int i = 0; i < orderVector.size(); ++i) {
-        ordersList->at(i) = orderVector[i];
+    // Bubble Sort
+    int n = ordersList->size();
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 0; j < n - i - 1; ++j) {
+            // Comparar y hacer el intercambio si es necesario
+            if (!compareByAmount(ordersList->at(j), ordersList->at(j + 1))) {
+                swap(ordersList->at(j), ordersList->at(j + 1));
+            }
+        }
     }
 }
+
 void sortOrdersByDistance(List<Order*>* ordersList) {
     vector<Order*> orderVector;
     for (int i = 0; i < ordersList->size(); ++i) {
@@ -243,8 +303,41 @@ void sortOrdersByDistance(List<Order*>* ordersList) {
     }
 }
 
+void sortOrderByWeight(List<Order*>* ordersList) {
+    vector<Order*> orderVector;
+    /*
+    for (int i = 0; i < orderList->size(); i++) {
+    orderVector.push_back(orderList->at(i));
+    }
+    sort(orderVector.begin(), orderVector.end(), compareByWeight);
+    for (int i = 0; i < orderVector.size(); i++) {
+    orderList->at(i) = orderVector[i];
+    }
+    */
+    for (int i = 0; i < ordersList->size(); ++i) {
+        orderVector.push_back(ordersList->at(i));
+    }
 
-void executeMenuForEmployees(int option) {
+    // Ordenamiento por inserción
+    for (int i = 1; i < orderVector.size(); ++i) {
+        Order* key = orderVector[i];
+        int j = i - 1;
+        // Mover elementos de orderVector[0..i-1], que son mayores que key,
+        // a una posición adelante de su posición actual
+        while (j >= 0 && key->getTotalWeight() > orderVector[j]->getTotalWeight()) {
+            orderVector[j + 1] = orderVector[j];
+            j = j - 1;
+        }
+        orderVector[j + 1] = key;
+    }
+
+    for (int i = 0; i < orderVector.size(); ++i) {
+        ordersList->at(i) = orderVector[i];
+    }
+}
+
+
+void executeMenuForEmployees(int option, string& driverName) {
     switch (option) {
     case 1:
         // Mostrar lista de pedidos pendientes y permitir al empleado seleccionar un pedido
@@ -256,17 +349,24 @@ void executeMenuForEmployees(int option) {
             showOrdersMenu();
             int orderBy;
             cin >> orderBy;
-
+            List<Order*>* assignedOrdersList = new List<Order*>;
+            for (int i = 0; i < ordersList->size(); ++i) {
+                if (orderDriverMap[ordersList->at(i)]->getEmail() == driverName) {
+                    assignedOrdersList->push_back(ordersList->at(i));
+                }
+            }
             // Aplicar el ordenamiento según la opción seleccionada
             switch (orderBy) {
             case 1:
-                sortOrdersByAmount(ordersList);
+                sortOrdersByAmount(assignedOrdersList);
                 break;
             case 2:
-                sortOrdersByDistance(ordersList);
+                sortOrdersByDistance(assignedOrdersList);
                 break;
             case 3:
-                
+                sortOrderByWeight(assignedOrdersList);
+            case 4:
+
                 break;
             default:
                 cout << "Opción no válida." << endl;
@@ -275,10 +375,10 @@ void executeMenuForEmployees(int option) {
 
             // Mostrar los datos de los pedidos ordenados
             cout << "Lista de pedidos pendientes:" << endl;
-            for (int i = 0; i < ordersList->size(); ++i) {
-                Order* order = ordersList->at(i);
-                cout << i + 1 << ". Pedido desde " << ordersList->at(i)->getRoute()->getOrigin()
-                    << " hasta " << ordersList->at(i)->getRoute()->getDestination() << endl;
+            for (int i = 0; i < assignedOrdersList->size(); ++i) {
+                Order* order = assignedOrdersList->at(i);
+                cout << i + 1 << ". Pedido desde " << assignedOrdersList->at(i)->getRoute()->getOrigin()
+                    << " hasta " << assignedOrdersList->at(i)->getRoute()->getDestination() << endl;
                 cout << "   Monto total: S/." << order->getTotalAmount() << endl;
                 cout << "   Distancia: " << order->getDistance() << " km" << endl;
             }
@@ -287,26 +387,35 @@ void executeMenuForEmployees(int option) {
             cout << "Seleccione el número de pedido que desea realizar: ";
             int selectedOrderIndex;
             cin >> selectedOrderIndex;
-            selectedOrderIndex--; // Ajustar a índice basado en 0
+            selectedOrderIndex--;
 
             // Validar la entrada del usuario
-            if (selectedOrderIndex < 0 || selectedOrderIndex >= ordersList->size()) {
-                cout << "Número de pedido no válido." << endl;
-                return;
+            system("cls");
+            if (selectedOrderIndex >= 0 && selectedOrderIndex < assignedOrdersList->size()) {
+                Order* selectedOrder = assignedOrdersList->at(selectedOrderIndex);
+                List<Product*>* productsOfOrder = selectedOrder->getProductsList();
+                cout << "Productos del pedido seleccionado:" << endl;
+                for (int i = 0; i < productsOfOrder->size(); ++i) {
+                    Product* product = productsOfOrder->at(i);
+                    // Verificar si el pedido del producto coincide con el pedido seleccionado
+                    if (product->getOrderID() == selectedOrder->getOrderID()) {
+                        product->showProductInfo();
+                    }
+                }
+                cout << "Orden en curso...";
             }
             else {
-                cout << "Orden en curso...";
+                cout << "Numero de pedido no válido." << endl;
             }
 
         }
         break;
-
     case 2:
         cout << "Cerrando sesión..." << endl;
         break;
     }
 
-    
+
 }
 
 
@@ -321,7 +430,7 @@ void registerUser() {
     string licenseNumber, vehicleType;
 
 
- //USUARIO (USER):
+    //USUARIO (USER):
     system("cls");
     cout << "Ingrese:" << endl;
     cout << "1. Customer -> Si desea usar nuestro servicio" << endl;
@@ -334,7 +443,7 @@ void registerUser() {
     } while (userType < 1 || userType > 2);
     cout << endl;
 
-        //CLIENTE (CUSTOMER):
+    //CLIENTE (CUSTOMER):
     if (userType == 1) {
 
 
@@ -352,7 +461,7 @@ void registerUser() {
         } while (customerType < 1 || customerType > 2);
         switch (customerType) {
 
-                       //PERSONA (PERSON):
+            //PERSONA (PERSON):
         case 1:
 
 
@@ -371,7 +480,7 @@ void registerUser() {
             usersList->push_back(new Person(username, email, password, dni));
             break;
 
-                       //COMPAÑIA/EMPRESA (COMPANY):
+            //COMPAÑIA/EMPRESA (COMPANY):
         case 2:
 
 
@@ -393,9 +502,9 @@ void registerUser() {
         }
 
     }
-        //EMPLEADO (EMPLOYEE):
-    
-                        //CONDUCTOR (DRIVER):
+    //EMPLEADO (EMPLOYEE):
+
+                    //CONDUCTOR (DRIVER):
     else if (userType == 2) {
         system("cls");
         cout << "REGISTRANDO EMPLEADO CONDUCTOR..." << endl;
@@ -428,34 +537,39 @@ void registerUser() {
         else if (vehicleType == "camion") {
             driversCamion->push_back(driver);
         }
-    
+
     }
-    cout << "\nUuario registrado exitosamente..." << endl;
+    cout << "\nUsuario registrado exitosamente..." << endl;
     cout << "Presione cualquier tecla para volver al menu..." << endl;
     _getch();
 }
 
 //MOSTRAR ORDENES PENDIENTES PARA DRIVER
 void showPendingOrders(Driver* driver) {
-    cout << "Pedidos pendientes para el conductor " << driver->getName() << ":" << endl;
+    User* user = nullptr;
+    cout << "\nPedidos pendientes para el conductor " << driver->getName() << ":" << endl;
     bool hasPendingOrders = false;
 
+    // Iterar sobre el mapa de pedidos y conductores
     for (const auto& pair : orderDriverMap) {
+        // Verificar si el conductor coincide
         if (pair.second == driver) {
             Order* order = pair.first;
-            // Aquí mostramos detalles del pedido
             Route* route = order->getRoute();
             cout << "Pedido desde " << route->getOrigin() << " hasta " << route->getDestination() << endl;
             cout << "Distancia: " << route->getDistance() << " km" << endl;
             cout << "Productos: " << endl;
+
+            // Iterar sobre la lista de productos del pedido
             for (int i = 0; i < order->getProductsList()->size(); i++) {
                 Product* product = order->getProductsList()->at(i);
-                cout << "  - " << product->getNameProduct() << " (" << product->getWeight() << " kg)" << endl;
+                cout << "   - " << product->getNameProduct() << " (" << product->getWeight() << " kg)" << endl;
             }
             hasPendingOrders = true;
         }
     }
 
+    // Verificar si no hay pedidos pendientes
     if (!hasPendingOrders) {
         cout << "No hay pedidos pendientes." << endl;
     }
@@ -463,16 +577,57 @@ void showPendingOrders(Driver* driver) {
     _getch();
 }
 
+void showDriversListForLogin() {
+    cout << "Lista de conductores disponibles:" << endl;
+    for (int i = 0; i < driversList->size(); ++i) {
+        Driver* driver = driversList->at(i);
+        cout << i + 1 << ". " << driver->getName() << endl;
+    }
+}
+
+// Función para mostrar la información de inicio de sesión de un conductor
+void showDriverLoginInfo(int driverIndex) {
+    if (driverIndex >= 0 && driverIndex < driversList->size()) {
+        Driver* driver = driversList->at(driverIndex);
+        cout << "Correo electronico: " << driver->getEmail() << endl;
+        cout << "Contrasenia: " << driver->getPassword() << endl;
+        cout << endl;
+    }
+    else {
+        cout << "Índice de conductor no válido." << endl;
+    }
+}
+
 //INICIAR SESIÓN
 void LogIn() {
 
+    int option;
     string email, password;
     bool correctPassword = false;
     bool accountFound = false;
-    int optionForCustomers=0, optionForEmployees=0;
+    int optionForCustomers = 0, optionForEmployees = 0;
     int integer = -1; //ID: TICKET, ORDER, PRODUCT
 
     system("cls");
+    cout << " [1] Mostrar datos de conductores generados" << endl;
+    cout << " [2] Iniciar sesion con tu cuenta" << endl;
+    cin >> option;
+
+    switch (option)
+    {
+
+    case 1:
+        showDriversListForLogin();
+        cout << "Seleccione el numero de conductor del cual desea ver la informacion de inicio de sesion: ";
+        int driverIndex;
+        cin >> driverIndex;
+        driverIndex--;  // Ajustar al índice base 0
+        system("cls");
+        showDriverLoginInfo(driverIndex);
+    case 2:
+        cout << endl;
+
+    }
     cout << "Ingresa tu correo electronico: ";
     cin >> email;
 
@@ -490,16 +645,12 @@ void LogIn() {
                     optionForCustomers = showMenuForCustomers();
                     executeMenuForCustomers(optionForCustomers, i, integer);
                 }
-                 if (usersList->at(i)->getUserType() == "Employee") {
+                if (usersList->at(i)->getUserType() == "Employee") {
                     Employee* employee = dynamic_cast<Employee*>(usersList->at(i));
                     Driver* driver = dynamic_cast<Driver*>(employee);
                     optionForEmployees = showMenuForEmployees();
-                    executeMenuForEmployees(optionForEmployees);
-                    if (driver) {
-                        showPendingOrders(driver);
-                    }
-
-                 }
+                    executeMenuForEmployees(optionForEmployees, email);
+                }
                 break;
             }
         }
@@ -535,8 +686,11 @@ int showMenu() {
     cout << " ------------------------------------------------------------" << endl;
     cout << "|   3   |           Mostrar usuarios                         |" << endl;
     cout << " ------------------------------------------------------------" << endl;
-    cout << "|   4   |           Salir                                    |" << endl;
+    cout << "|   4   |           Generar conductores                      |" << endl;
     cout << " ------------------------------------------------------------" << endl;
+    cout << "|   5   |           Salir                                    |" << endl;
+    cout << " ------------------------------------------------------------" << endl;
+
 
     int opcion;
     do
@@ -552,9 +706,9 @@ int showMenu() {
 int main()
 {
     int option = 1;
-    
 
-    while (option != 4) {
+
+    while (option != 5) {
         system("cls");
         option = showMenu();
 
@@ -574,18 +728,28 @@ int main()
             else {
                 for (int i = 0; i < usersList->size(); i++) {
                     cout << "Usuario " << i + 1 << ": " << usersList->at(i)->getUserType() << endl;
+                    cout << "Nombre: " << driversList->at(i)->getName() << endl;
 
 
                 }
             }
-            cout << "hhh";
             _getch();
             break;
+
+        case 4:
+            int numDrivers;
+            cout << "Ingrese el numero de conductores aleatorios a generar: ";
+            cin >> numDrivers;
+            generateDrivers(numDrivers);
+            break;
+
+        case 5:
+            cout << "Saliendo del programa..." << endl;
+            break;
         }
-        
-       
+
     }
 
-    
+
 }
 

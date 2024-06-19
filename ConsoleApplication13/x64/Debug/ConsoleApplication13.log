@@ -1,2 +1,3 @@
 ﻿  ConsoleApplication13.cpp
+C:\Users\User\Downloads\TF-advances-main\TF-advances-main\ConsoleApplication13\ConsoleApplication13\ConsoleApplication13.cpp(284,11): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
   ConsoleApplication13.vcxproj -> C:\Users\User\Downloads\TF-advances-main\TF-advances-main\ConsoleApplication13\x64\Debug\ConsoleApplication13.exe
